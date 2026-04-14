@@ -3,13 +3,15 @@ from tkinter import font as tkFont
 import sys
 import os
 import shutil
+import ssl
 import urllib.request
 import zipfile
 import tempfile
 import filecmp
 
-####TESTING TESTING 123
+syncerror=False
 
+required=['./py','./py/camp_edit.py','./py/game.py','./ATT/LOGO.png']
 
 #Add local path /py to modules
 sys.path.append('./py')
@@ -55,23 +57,40 @@ def sync(local,repo,delete_ext=False):
 
 local_dir='./'
 gzip=("https://github.com/wiseyb/ProgProj/archive/refs/heads/main.zip")
-with tempfile.TemporaryDirectory() as tmp:
-    zpath=os.path.join(tmp,'repo.zip')
-    print("Downloading GitHub repo…")
-    drz(gzip,zpath)
-    print("Extracting…")
-    extract(zpath,tmp)
-    
+try:
+    with tempfile.TemporaryDirectory() as tmp:
+        zpath=os.path.join(tmp,'repo.zip')
+        print("Downloading GitHub repo…")
+        drz(gzip,zpath)
+        print("Extracting…")
+        extract(zpath,tmp)
+        
 
-    repo_root = next(
-            os.path.join(tmp, d)
-            for d in os.listdir(tmp)
-            if os.path.isdir(os.path.join(tmp, d))
-        )
+        repo_root = next(
+                os.path.join(tmp, d)
+                for d in os.listdir(tmp)
+                if os.path.isdir(os.path.join(tmp, d))
+            )
 
-    print("Syncing...")
-    sync(local_dir,repo_root,delete_ext=True)
+        print("Syncing...")
+        sync(local_dir,repo_root,delete_ext=True)
+except Exception as e:
+    syncerror=True
+    if str(e) == "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Basic Constraints of CA cert not marked critical (_ssl.c:1032)>":
+        exp='SSL certificate verification failed'
+    else:
+        exp=e
+    print(f'''Error syncing project:  {exp}''')
 
+if syncerror:
+    for p in required:
+        if not os.path.exists(p):
+            fpath=os.path.abspath(p)
+            print(f'''Required data is not present.
+Path: {fpath}
+Quitting...''')
+            import os
+            os._exit(0)
         
 #Init window
 root=Tk()
