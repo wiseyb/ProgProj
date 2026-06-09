@@ -9,9 +9,17 @@ import zipfile
 import tempfile
 import filecmp
 
-syncerror=False
 
-required=['./py','./py/camp_edit.py','./py/game.py','./ATT/LOGO.png']
+class RequirementsError(Exception):
+    '''Missing required contents'''
+
+
+
+
+syncerror=False
+missingReq=False
+
+required=['./py','./py/camp_edit.py','./py/game.py','./ATT/BACK.png']
 
 #Add local path /py to modules
 sys.path.append('./py')
@@ -82,6 +90,15 @@ except Exception as e:
         exp=e
     print(f'''Error syncing project:  {exp}''')
 
+for el in required:
+    if not os.path.exists(el):
+        missingReq=True
+        break
+
+
+if syncerror and missingReq:
+    raise RequirementsError("Program is missing required data and cannot sync with remote storage")
+
 if syncerror:
     for p in required:
         if not os.path.exists(p):
@@ -94,8 +111,8 @@ Quitting...''')
         
 #Init window
 root=Tk()
-root.title('GAME')
-bgr=PhotoImage(file='./ATT/LOGO.png')
+root.title('POLYMORPHISM')
+bgr=PhotoImage(file='./ATT/BACK.png')
 w=bgr.width()
 h=bgr.height()
 ws=root.winfo_screenwidth()
@@ -107,45 +124,117 @@ root.geometry(dim)
 l1=Label(root,image=bgr)
 l1.place(x=-2,y=-2)
 
+hexv=['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
+
+def ls(a,f):
+    found=False
+    for i in range(len(a)):
+        if a[i]==f:
+            found=True
+            break
+    if found:
+        return i
+    else:
+        return 0
+    
+bab='#990000'
+
+baf='#000'
+
+ho='#350000'
+
+bbg='#0a0b0a'
+
+bfg='#ff0000'
+
+hoverc='#'
+for c in range(len(bbg)):
+    if bbg[c]=='#':
+        pass
+    else:
+        nvi=ls(hexv,bbg[c])+int(ho[c])
+        nv=hexv[nvi]
+        hoverc+=nv
+
+def deny(e):
+    print('Nuh-uh')
+
 
 def hover(e):
-    e.widget['background']='#B10606'
-    e.widget['height']=3
+    e.widget['background']=hoverc
+    e.widget['height']=2
 
 def un_hover(e):
-    e.widget['background']='#8A0303'
-    e.widget['height']=2
+    e.widget['background']=bbg
+    e.widget['height']=1
 
 
 def close():
-    root.destroy
+    root.destroy()
     import os
     os._exit(0)
-def play():
+def game():
     print('Play')
-
 def camp():
     print('Campaign Editor')
-bwid=18
+
+
+def trigger_button_press(btn):
+    btn.event_generate("<Enter>")
+    btn.event_generate("<ButtonPress-1>")
+
+def trigger_button_release(btn):
+    btn.event_generate("<ButtonRelease-1>")
+    btn.event_generate("<Leave>")
+
+
+    
+bwid=13
 wid=w
 gap=(wid-(3*bwid))/10
 fx=gap/2
 bx=gap/2
 
+#Define Buttons
 
-cls = Button(root, text = 'Close',bg='#8A0303',fg='#F5F2E7',height=2,width=bwid,command = close,font=('BankGothic Lt BT', 12))
-ply= Button(root, text = 'Play Game',bg='#8A0303',fg='#F5F2E7',height=2,width=bwid,command=play,font=('BankGothic Lt BT', 12))
-lm= Button(root, text = 'Campaign Editor',bg='#8A0303',fg='#F5F2E7',height=2,width=bwid,command=camp,font=('BankGothic Lt BT', 12))
-py=(600,0)
+b1 = Button(root, text = 'Close',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=1,width=bwid,command = close,font=('BankGothic Lt BT', 12))
+b2= Button(root, text = 'Play Game',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=1,width=bwid,command=game,font=('BankGothic Lt BT', 12))
+b3= Button(root, text = 'Campaign Editor',activebackground=bab,activeforeground=baf,bd=0,bg=bbg,fg=bfg,height=1,width=bwid,command=camp,font=('BankGothic Lt BT', 12))
+py=(300,0)
 px=(fx,bx)
-cls.pack(side = 'left',pady=py,padx=px)
-ply.pack(side = 'left',pady=py,padx=px)
-lm.pack(side = 'left',pady=py,padx=px)
-cls.bind("<Enter>", hover)
-cls.bind("<Leave>", un_hover)
-ply.bind("<Enter>", hover)
-ply.bind("<Leave>", un_hover)
-lm.bind("<Enter>", hover)
-lm.bind("<Leave>", un_hover)
+
+#Render Homescreeen
+
+b1.pack(side = 'left',pady=py,padx=px)
+b2.pack(side = 'left',pady=py,padx=px)
+b3.pack(side = 'left',pady=py,padx=px)
+
+# Custom Keyboard Shortcuts
+
+
+# Play Game (key 1)
+root.bind("<KeyPress-space>", lambda e: trigger_button_press(b2))
+root.bind("<KeyRelease-space>", lambda e: trigger_button_release(b2))
+
+# Close (key 2)
+root.bind("<KeyPress-q>", lambda e: trigger_button_press(b1))
+root.bind("<KeyRelease-q>", lambda e: trigger_button_release(b1))
+
+# Campaign (key 3)
+root.bind("<KeyPress-e>", lambda e: trigger_button_press(b3))
+root.bind("<KeyRelease-e>", lambda e: trigger_button_release(b3))
+
+
+#Hover Bindings
+
+b1.bind("<Enter>", hover)
+b1.bind("<Leave>", un_hover)
+b2.bind("<Enter>", hover)
+b2.bind("<Leave>", un_hover)
+b3.bind("<Enter>", hover)
+b3.bind("<Leave>", un_hover)
+
+#Render Window
+
 root.mainloop()
 
