@@ -10,10 +10,11 @@ import zipfile
 import tempfile
 import filecmp
 
+def passf():
+    pass
 
 def rgb_to_hex(rgb):
     return '#%02x%02x%02x' % rgb
-
 
 def get_bg_color(img, step=10):
     pixels = []
@@ -38,10 +39,9 @@ bgimagepath='./ATT/LOGO-NEW.png'
 syncerror=False
 missingReq=False
 
-required=['./py','./py/camp_edit.py','./py/game.py',bgimagepath]
+required=[bgimagepath]
 
 #Add local path /py to modules
-sys.path.append('./py')
 
 # Setup and creation of missing files
 def drz(rurl,dzip):
@@ -145,7 +145,7 @@ dim=f'{w}x{h}+{x}+{y}'
 root.geometry(dim)
 root.configure(bg=get_bg_color(bgr))
 bp=Label(root,image=bgr,bd=0)
-
+screen=0
 
 
 #determine hover colours for buttons
@@ -184,6 +184,93 @@ for c in range(len(bbg)):
 
 
 # Functions requrired for buttons and keybinds
+global campDTA
+global fn
+fn=''
+campDTA=''
+global ciV
+ciV=''
+global eiV
+eiV=''
+global file
+global filesv
+filesv=StringVar()
+with open('./DTA/camp/TMPLT/blank.gmdta','r') as f:
+    t=str(f.read())
+    filesv.set(t)
+    file=t
+def commit():
+    global campDTA
+    campDTA=file.format(eny=eiV,camp=ciV)
+    fn=filep.get()
+    path=f'./DTA/camp/{fn}.gmdta'
+    with open(path,'w') as f:
+        f.write(campDTA)
+        print('Write')
+        filep.delete(0, END)
+    with open(path,'r') as r:
+        print(r.read())
+    
+def eAdd():
+    global ciV
+    global eiV
+    global file
+    name=True
+    nm=enNam.get()
+    if nm=='':
+        enNam.delete(0,END)
+        enNam.insert(0,'Enter a name')
+        nm=enNam.get()
+        name=False
+    try:
+        hl=int(enHel.get())
+        health=True
+    except:
+        enHel.delete(0,END)
+        enHel.insert(0,'Enter a number')
+        health=False
+    try:
+        at=int(enAtt.get())
+        attack=True
+    except:
+        enAtt.delete(0,END)
+        enAtt.insert(0,'Enter a number')
+        attack=False
+    try:
+        sp=int(enSpe.get())
+        spell=True
+    except:
+        enSpe.delete(0,END)
+        enSpe.insert(0,'Enter a number')
+        spell=False
+    if name and health and attack and spell:
+        dta=f'''{nm} {hl} {at} {sp}
+'''
+        eiV+=dta
+        fileText.configure(text=file.format(eny=eiV,camp=ciV))
+        campDTA=file.format(eny=eiV,camp=ciV)       
+        enNam.delete(0, END)
+        enHel.delete(0, END)
+        enAtt.delete(0, END)
+        enSpe.delete(0, END)
+
+        print(campDTA)
+
+def cAdd():
+    global ciV
+    global eiV
+    global file
+    q=cQuant.get()
+    nm=cBox.get()
+    dta=f'''{q} {nm}
+'''
+    ciV+=dta
+    fileText.configure(text=file.format(eny=eiV,camp=ciV))
+    campDTA=file.format(eny=eiV,camp=ciV)    
+    cQuant.delete(0, END)
+    cBox.delete(0, END)
+    print(campDTA)
+
 def deny(e):
     print('Nuh-uh')
 
@@ -195,6 +282,16 @@ def un_hover(e):
     e.widget['background']=bbg
 
 def home():
+    global screen
+    screen = 0
+    root.bind("<KeyPress-space>", lambda e: trigger_button_press(b2))
+    root.bind("<KeyRelease-space>", lambda e: trigger_button_release(b2))
+    root.bind("<KeyPress-q>", lambda e: trigger_button_press(b1))
+    root.bind("<KeyRelease-q>", lambda e: trigger_button_release(b1))
+    root.bind("<KeyPress-e>", lambda e: trigger_button_press(b3))
+    root.bind("<KeyRelease-e>", lambda e: trigger_button_release(b3))
+    root.title(name)
+    cewf.place_forget()
     b1.configure(text = '''Close
 [Q]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command = close,font=('BankGothic Lt BT', 12))
     b2.configure(text = '''Play Game
@@ -208,12 +305,24 @@ def home():
     b1.pack(side='left', padx=30)
     b2.pack(side='left', padx=30)
     b3.pack(side='left', padx=30)
-
 def close():
+    print('''
+
+
+------------------------------------
+------------------------------------
+          WINDOW CLOSED
+------------------------------------
+------------------------------------
+
+
+''')
     root.destroy()
     import os
     os._exit(0)
 def game():
+    global screen
+    screen = 1
     bp.place_forget()
     t1.place_forget()
     t2.place_forget()
@@ -228,8 +337,31 @@ def game():
     b2.pack(side='left', padx=40)
     b3.pack(side='left', padx=40)
 def camp():
-    print('Campaign Editor')
+    global screen
+    screen = 2
+    root.bind("<KeyPress-space>", lambda e: passf())
+    root.bind("<KeyRelease-space>", lambda e:  passf())
+    root.bind("<KeyPress-q>", lambda e: trigger_button_press(b8))
+    root.bind("<KeyRelease-q>", lambda e: trigger_button_release(b8))
+    root.bind("<KeyPress-e>", lambda e: passf())
+    root.bind("<KeyRelease-e>", lambda e: passf())
+    root.title('Campaign Editor')
+    bp.place_forget()
+    t1.place_forget()
+    t2.place_forget()
+    bf.place_forget()
+    b1.pack_forget()
+    b2.pack_forget()
+    b3.pack_forget()
 
+    cewf.place(relx=0.5, rely=0.5, anchor='center')
+    
+def esc():
+    global screen
+    if screen == 0:
+        close()
+    else:
+        home()
 
 def trigger_button_press(btn):
     btn.event_generate("<Enter>")
@@ -238,6 +370,8 @@ def trigger_button_press(btn):
 def trigger_button_release(btn):
     btn.event_generate("<ButtonRelease-1>")
     btn.event_generate("<Leave>")
+
+
 
 #Define Labels
 t1=Label(root,text=name,fg=bfg,bg=bbg,font=('BankGothic Lt BT', 40))
@@ -254,15 +388,76 @@ bx=gap/2
 
 
 bf=Frame(root,bg=bbg)
+cewf=Frame(root,bg=bbg)
 
-#Define Buttons
+#Define Elements and set initial appearance
 
 b1 = Button(bf, text = '''Close
 [Q]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command = close,font=('BankGothic Lt BT', 12))
+
 b2= Button(bf, text = '''Play Game
 [SPACE]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=game,font=('BankGothic Lt BT', 12))
+
 b3= Button(bf, text = '''Campaign Editor
 [E]''',activebackground=bab,activeforeground=baf,bd=0,bg=bbg,fg=bfg,height=2,width=bwid,command=camp,font=('BankGothic Lt BT', 12))
+
+inter=Frame(cewf,bg=bbg)
+inter.pack(side='left', padx=100)
+textf=Frame(cewf,bg=bbg)
+textf.pack(side='right')
+fileText=Label(textf,width=50,text=file,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12))
+fileText.pack(padx=10, pady=10)
+eBox=Frame(inter,bg=bbg)
+eBox.pack(padx=10, pady=10)
+enNamCont=Frame(eBox,bg=bbg)
+enHelCont=Frame(eBox,bg=bbg)
+enAttCont=Frame(eBox,bg=bbg)
+enSpeCont=Frame(eBox,bg=bbg)
+enNamCont.pack()
+enHelCont.pack()
+enAttCont.pack()
+enSpeCont.pack()
+enNamLab=Label(enNamCont,text="Name:",bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12))
+enNam=Entry(enNamCont,width=10,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12),insertbackground=bfg)
+enHelLab=Label(enHelCont,text="Health:",bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12))
+enHel=Entry(enHelCont,width=10,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12),insertbackground=bfg)
+enAttLab=Label(enAttCont,text="Attack:",bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12))
+enAtt=Entry(enAttCont,width=10,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12),insertbackground=bfg)
+enSpeLab=Label(enSpeCont,text="Spell Attack:",bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12))
+enSpe=Entry(enSpeCont,width=10,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12),insertbackground=bfg)
+enNamLab.pack(side = 'left',padx=2, pady=2)
+enNam.pack(side = 'right',padx=2, pady=2)
+enHelLab.pack(side = 'left',padx=2, pady=2)
+enHel.pack(side = 'right',padx=2, pady=2)
+enAttLab.pack(side = 'left',padx=2, pady=2)
+enAtt.pack(side = 'right',padx=2, pady=2)
+enSpeLab.pack(side = 'left',padx=2, pady=2)
+enSpe.pack(side = 'right',padx=2, pady=2)
+enAdd=Button(eBox,text='Add',command=eAdd,bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12))
+enAdd.pack(padx=2, pady=2)
+cBoxCont=Frame(inter,bg=bbg)
+cBoxCont.pack()
+cQuant=Entry(cBoxCont,width=2,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12),insertbackground=bfg)
+cQuantLab=Label(cBoxCont,text='Quantity:',bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12))
+cQuantLab.pack(side='left')
+cQuant.pack(side='left',padx=2, pady=10)
+cBox=Entry(cBoxCont,width=10,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12),insertbackground=bfg)
+cBoxLab=Label(cBoxCont,text='Name:',bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12))
+cBoxLab.pack(side='left')
+cBox.pack(side='left',padx=2, pady=10)
+caAdd=Button(inter,text='Add',command=cAdd,bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12))
+caAdd.pack(padx=2, pady=2)
+filep=Entry(inter,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12),insertbackground=bfg)
+filep.pack(pady=10)
+Commit=Button(inter,text='Commit to file',command=lambda: commit(),bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,font=('BankGothic Lt BT', 12))
+Commit.pack(padx=10, pady=10)
+b8= Button(inter,text='''Home
+[Q]''', command=home,activebackground=bab,activeforeground=baf,bd=0,bg=bbg,fg=bfg,height=2,width=bwid,font=('BankGothic Lt BT', 12))
+b8.pack(side='top', pady=40)
+
+
+
+
 py=(0,40)
 px=(fx,bx)
 
@@ -285,6 +480,9 @@ root.bind("<KeyRelease-q>", lambda e: trigger_button_release(b1))
 root.bind("<KeyPress-e>", lambda e: trigger_button_press(b3))
 root.bind("<KeyRelease-e>", lambda e: trigger_button_release(b3))
 
+# Escape (esc key)
+root.bind('<Escape>', lambda e: esc())
+
 
 #Hover Bindings
 
@@ -294,7 +492,14 @@ b2.bind("<Enter>", hover)
 b2.bind("<Leave>", un_hover)
 b3.bind("<Enter>", hover)
 b3.bind("<Leave>", un_hover)
-
+Commit.bind("<Enter>", hover)
+Commit.bind("<Leave>", un_hover)
+caAdd.bind("<Enter>", hover)
+caAdd.bind("<Leave>", un_hover)
+enAdd.bind("<Enter>", hover)
+enAdd.bind("<Leave>", un_hover)
+b8.bind("<Enter>", hover)
+b8.bind("<Leave>", un_hover)
 #Render Window
 
 root.mainloop()
