@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter import font as tkFont
+from tkinter import filedialog,messagebox
 from collections import Counter
 import sys
 import os
@@ -9,6 +10,16 @@ import urllib.request
 import zipfile
 import tempfile
 import filecmp
+
+PROTECTED_PATHS = {".git", ".github", "__pycache__", ".venv"}
+
+DEV_MODE = True  # Set True to prevent git syncing
+
+def is_protected_path(path):
+    normalized = os.path.normcase(os.path.normpath(path))
+    parts = [part for part in normalized.split(os.sep) if part and part not in {".", ".."}]
+    return any(part in PROTECTED_PATHS for part in parts)
+
 
 def passf():
     pass
@@ -28,6 +39,7 @@ def get_bg_color(img, step=10):
 
     most_common = Counter(pixels).most_common(1)[0][0]
     return rgb_to_hex(most_common)
+
 
 
 class RequirementsError(Exception):
@@ -51,64 +63,86 @@ def extract(zpath,to):
     with zipfile.ZipFile(zpath,'r') as z:
         z.extractall(to)
 
-def sync(local,repo,delete_ext=False):
+def sync(local, repo, delete_ext=False):
+    local = os.path.abspath(local)
+    repo = os.path.abspath(repo)
+
     for root, dirs, files in os.walk(repo):
-        rel=os.path.relpath(root,repo)
-        local_eqv=os.path.join(local,rel)
-        if not os.path.exists(local_eqv):
-            os.makedirs(local_eqv)
+        dirs[:] = [d for d in dirs if not is_protected_path(os.path.join(root, d))]
+        rel = os.path.relpath(root, repo)
+        local_eqv = os.path.join(local, rel)
+        os.makedirs(local_eqv, exist_ok=True)
+
         for f in files:
-            repof=os.path.join(root,f)
-            localf=os.path.join(local_eqv,f)
+            repof = os.path.join(root, f)
+            if is_protected_path(repof):
+                continue
+            localf = os.path.join(local_eqv, f)
             if not os.path.exists(localf) or not filecmp.cmp(repof, localf, shallow=False):
-                shutil.copy2(repof,localf)
+                shutil.copy2(repof, localf)
                 print("Updated:", os.path.relpath(localf, local))
-        
+
         if delete_ext:
-            for root, dirs, files in os.walk(local, topdown=False):
-                rel = os.path.relpath(root, local)
+            for current_root, current_dirs, current_files in os.walk(local, topdown=False):
+                current_dirs[:] = [d for d in current_dirs if not is_protected_path(os.path.join(current_root, d))]
+                rel = os.path.relpath(current_root, local)
                 repo_eqv = os.path.join(repo, rel)
-                if not os.path.exists(repo_eqv):
-                    shutil.rmtree(root)
+                if is_protected_path(current_root):
                     continue
-                repofs=set(os.listdir(repo_eqv))
-                localfs=set(os.listdir(root))
-                for i in localfs-repofs:
-                    p=os.path.join(root,i)
+                if not os.path.exists(repo_eqv):
+                    if os.path.isdir(current_root) and not os.path.islink(current_root):
+                        shutil.rmtree(current_root)
+                    else:
+                        os.remove(current_root)
+                    continue
+                repofs = set(os.listdir(repo_eqv))
+                localfs = set(os.listdir(current_root))
+                for i in localfs - repofs:
+                    p = os.path.join(current_root, i)
+                    if is_protected_path(p):
+                        continue
                     if os.path.isdir(p):
                         shutil.rmtree(p)
                     else:
                         os.remove(p)
                     print("Deleted:", os.path.relpath(p, local))
-                    
 
-local_dir='./'
-gzip=("https://github.com/wiseyb/ProgProj/archive/refs/heads/main.zip")
-try:
-    with tempfile.TemporaryDirectory() as tmp:
-        zpath=os.path.join(tmp,'repo.zip')
-        print("Downloading GitHub repo…")
-        drz(gzip,zpath)
-        print("Extracting…")
-        extract(zpath,tmp)
-        
 
-        repo_root = next(
+script_dir = os.path.abspath(os.path.dirname(__file__))
+os.chdir(script_dir)
+local_dir = script_dir
+bgimagepath = os.path.join(script_dir, 'ATT', 'LOGO-NEW.png')
+required = [bgimagepath]
+gzip = ("https://github.com/wiseyb/ProgProj/archive/refs/heads/main.zip")
+if not DEV_MODE:
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            zpath = os.path.join(tmp, 'repo.zip')
+            print("Downloading GitHub repo…")
+            drz(gzip, zpath)
+            print("Extracting…")
+            extract(zpath, tmp)
+
+            repo_candidates = [
                 os.path.join(tmp, d)
                 for d in os.listdir(tmp)
                 if os.path.isdir(os.path.join(tmp, d))
-            )
+            ]
+            repo_root = next((p for p in repo_candidates if os.path.isdir(os.path.join(p, '.git'))), repo_candidates[0] if repo_candidates else None)
+            if repo_root is None:
+                raise FileNotFoundError("Downloaded repo contents were not found")
 
-        print("Syncing...")
-        sync(local_dir,repo_root,delete_ext=True)
-except Exception as e:
-    syncerror=True
-    if "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Basic Constraints of CA cert not marked critical (_ssl.c:" in str(e):
-        exp='SSL certificate verification failed'
-    else:
-        exp=e
-    print(f'''Error syncing project:  {exp}''')
-
+            print("Syncing...")
+            sync(local_dir, repo_root, delete_ext=True)
+    except Exception as e:
+        syncerror = True
+        if "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Basic Constraints of CA cert not marked critical (_ssl.c:" in str(e):
+            exp = 'SSL certificate verification failed'
+        else:
+            exp = e
+        print(f'''Error syncing project:  {exp}''')
+else:
+    print("DEV MODE enabled. Skipping Git sync.")
 for el in required:
     if not os.path.exists(el):
         missingReq=True
@@ -281,6 +315,16 @@ def hover(e):
 def un_hover(e):
     e.widget['background']=bbg
 
+
+
+#Class system imported from class
+
+from class_sys import *
+
+g=game_sys()
+
+#Window configs
+
 def home():
     global screen
     screen = 0
@@ -292,10 +336,12 @@ def home():
     root.bind("<KeyRelease-e>", lambda e: trigger_button_release(b3))
     root.title(name)
     cewf.place_forget()
+    t1.configure(text=name)
+    t2.configure(text='Shape your own reality')
     b1.configure(text = '''Close
 [Q]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command = close,font=('BankGothic Lt BT', 12))
     b2.configure(text = '''Play Game
-[SPACE]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=game,font=('BankGothic Lt BT', 12))
+[SPACE]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=game_home,font=('BankGothic Lt BT', 12))
     b3.configure(text = '''Campaign Editor
 [E]''',activebackground=bab,activeforeground=baf,bd=0,bg=bbg,fg=bfg,height=2,width=bwid,command=camp,font=('BankGothic Lt BT', 12))
     bp.place(relx=0.5, rely=0.5, anchor='center')
@@ -320,22 +366,143 @@ def close():
     root.destroy()
     import os
     os._exit(0)
-def game():
+
+camp_type=''
+
+def player_select():
     global screen
-    screen = 1
-    bp.place_forget()
-    t1.place_forget()
-    t2.place_forget()
+    screen = 3
+    t1.configure(text=camp_type)
+    t2.configure(text='Choose your Player')
+    t2.place(relx=0.5, rely=0.5, anchor='center')
+    b3.pack_forget()
     b1.configure(text='''Home
-[Q]''', command=home)
-    b2.configure(text='''Attack
-[SPACE]''')
-    b3.configure(text='''Spell
-[E]''')
+    [Q]''', command=home)
+    b2.configure(text='''New Player
+    [SPACE]''',width=bwid+5,command=newp)
+    bf.place(relx=0.5, rely=0.7, anchor='center')
+    b1.pack(side='left', padx=40)
+    b2.pack(side='left', padx=40)
+
+def start_encounter():
+    global screen
+    screen = 4
+    t1.configure(text=f'{p.name} vs {g.current_enemy.name}')
+    t2.configure(text=f'{g.current_enemy.name}: {g.current_enemy.health} health | {p.name}: {p.health}')
+    b1.configure(text='''Home
+    [Q]''', command=home)
+    b2.configure(text='''Melee Attack
+    [SPACE]''',width=bwid+5,command=Mattack)
+    b3.configure(text='''Spell Attack
+    [E]''',width=bwid+5,command=Sattack)
     bf.place(relx=0.5, rely=0.7, anchor='center')
     b1.pack(side='left', padx=40)
     b2.pack(side='left', padx=40)
     b3.pack(side='left', padx=40)
+
+def encounter_result(result):
+    global screen
+    screen = 5
+    b3.pack_forget()
+    b1.configure(text='''Home
+    [Q]''', command=home)
+    if result == 'victory' and g.level_index < len(g.level):
+        b2.configure(text='''Continue
+    [SPACE]''', width=bwid+5, command=continue_campaign)
+        t1.configure(text='Encounter Victory')
+        t2.configure(text=f'{p.name} defeated {g.current_enemy.name}')
+    elif result == 'victory':
+        b2.configure(text='''Play Again
+    [SPACE]''', width=bwid+5, command=game_home)
+        t1.configure(text='Campaign Complete')
+        t2.configure(text=f'{p.name} defeated every enemy')
+    else:
+        b2.configure(text='''Try Again
+    [SPACE]''', width=bwid+5, command=game_home)
+        t1.configure(text='Encounter Defeat')
+        t2.configure(text=f'{p.name} was defeated by {g.current_enemy.name}')
+    root.bind("<KeyPress-space>", lambda e: trigger_button_press(b2))
+    root.bind("<KeyRelease-space>", lambda e: trigger_button_release(b2))
+    root.bind("<KeyPress-e>", lambda e: passf())
+    root.bind("<KeyRelease-e>", lambda e: passf())
+    bf.place(relx=0.5, rely=0.7, anchor='center')
+    b1.pack(side='left', padx=40)
+    b2.pack(side='left', padx=40)
+
+def continue_campaign():
+    if g.next_encounter():
+        start_encounter()
+
+def combat_action(action):
+    result=g.take_turn(action)
+    if result == 'continue':
+        t1.configure(text=f'{p.name} vs {g.current_enemy.name}')
+        t2.configure(text=f'{g.current_enemy.name}: {g.current_enemy.health} health | {p.name}: {p.health} health')
+    elif result == 'victory':
+        encounter_result(result)
+    elif result == 'defeat':
+        encounter_result(result)
+
+def Mattack():
+    combat_action(1)
+
+def Sattack():
+    combat_action(2)
+
+def play_game():
+    print('Game Start')
+    g.begin(p)
+    start_encounter()
+    
+
+
+def default_camp():
+    global camp_type
+    camp_type='Default Campaign'
+    g.load('camp/game')
+    g.prep()
+    player_select()
+
+
+def custom_camp():
+    global camp_type
+    camp_type='Custom Campaign'
+    file_path = filedialog.askopenfilename(initialdir="./DTA/camp", title="Select Campaign File", filetypes=(("Game Data Files", "*.gmdta"), ("All Files", "*.*")))
+    while file_path and not file_path.lower().endswith('.gmdta'):
+        messagebox.showerror("Invalid File", "Please select a valid .gmdta file.")
+        file_path = filedialog.askopenfilename(initialdir="./DTA/camp", title="Select Campaign File", filetypes=(("Game Data Files", "*.gmdta"), ("All Files", "*.*")))
+    if not file_path:
+        return
+    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    g.load(f'camp/{file_name}')
+    g.prep()
+    player_select()
+
+
+def newp():
+    global p
+    p=player('Player')
+    play_game()
+
+
+def game_home():
+    global screen
+    screen = 1
+    bp.place_forget()
+    t1.configure(text='Select Campaign')
+    t1.place(relx=0.5, rely=0.4, anchor='center')
+    t2.place_forget()
+    b1.configure(text='''Home
+[Q]''', command=home)
+    b2.configure(text='''Play Default Campaign
+[SPACE]''',width=bwid+5,command=default_camp)
+    b3.configure(text='''Play Custom Campaign
+[E]''',width=bwid+5,command=custom_camp)
+    bf.place(relx=0.5, rely=0.7, anchor='center')
+    b1.pack(side='left', padx=40)
+    b2.pack(side='left', padx=40)
+    b3.pack(side='left', padx=40)
+
 def camp():
     global screen
     screen = 2
@@ -396,7 +563,7 @@ b1 = Button(bf, text = '''Close
 [Q]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command = close,font=('BankGothic Lt BT', 12))
 
 b2= Button(bf, text = '''Play Game
-[SPACE]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=game,font=('BankGothic Lt BT', 12))
+[SPACE]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=game_home,font=('BankGothic Lt BT', 12))
 
 b3= Button(bf, text = '''Campaign Editor
 [E]''',activebackground=bab,activeforeground=baf,bd=0,bg=bbg,fg=bfg,height=2,width=bwid,command=camp,font=('BankGothic Lt BT', 12))
