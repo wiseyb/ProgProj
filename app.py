@@ -13,7 +13,7 @@ import filecmp
 
 PROTECTED_PATHS = {".git", ".github", "__pycache__", ".venv"}
 
-DEV_MODE = True  # Set True to prevent git syncing
+DEV_MODE = False  # Set True to prevent git syncing
 
 def is_protected_path(path):
     normalized = os.path.normcase(os.path.normpath(path))
