@@ -89,6 +89,17 @@ class game_sys():
             s.gdta.append(ls)
         f.close()
 
+    def load_player(s,file):
+        with open(f'./DTA/{file}.chrdta','r') as f:
+            data=f.read().split()
+
+        s.player=player(data[0], int(data[1]), int(data[2]), int(data[3]))
+        return s.player
+
+    def save_player(s,file):
+        with open(f'./DTA/{file}.chrdta','w') as f:
+            f.write(f'{s.player.name} {s.player.health} {s.player.attackv} {s.player.spell}\n')
+
     def prep(s):
         tmg=[]
         for i in range(len(s.gdta)):
