@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import font as tkFont
-from tkinter import filedialog,messagebox
+from tkinter import filedialog,messagebox,simpledialog
 from collections import Counter
 import sys
 import os
@@ -13,7 +13,7 @@ import filecmp
 
 PROTECTED_PATHS = {".git", ".github", "__pycache__", ".venv"}
 
-DEV_MODE = False  # Set True to prevent git syncing
+DEV_MODE = True  # Set True to prevent git syncing
 
 def is_protected_path(path):
     normalized = os.path.normcase(os.path.normpath(path))
@@ -368,6 +368,7 @@ def close():
     os._exit(0)
 
 camp_type=''
+player_file=''
 
 def player_select():
     global screen
@@ -375,14 +376,16 @@ def player_select():
     t1.configure(text=camp_type)
     t2.configure(text='Choose your Player')
     t2.place(relx=0.5, rely=0.5, anchor='center')
-    b3.pack_forget()
     b1.configure(text='''Home
     [Q]''', command=home)
     b2.configure(text='''New Player
     [SPACE]''',width=bwid+5,command=newp)
+    b3.configure(text='''Load Player
+    [E]''',width=bwid+5,command=exip)
     bf.place(relx=0.5, rely=0.7, anchor='center')
     b1.pack(side='left', padx=40)
     b2.pack(side='left', padx=40)
+    b3.pack(side='left', padx=40)
 
 def start_encounter():
     global screen
@@ -435,6 +438,8 @@ def continue_campaign():
 
 def combat_action(action):
     result=g.take_turn(action)
+    if player_file:
+        g.save_player(player_file)
     if result == 'continue':
         t1.configure(text=f'{p.name} vs {g.current_enemy.name}')
         t2.configure(text=f'{g.current_enemy.name}: {g.current_enemy.health} health | {p.name}: {p.health} health')
@@ -478,12 +483,28 @@ def custom_camp():
     g.prep()
     player_select()
 
-
 def newp():
     global p
-    p=player('Player')
+    global player_file
+    name = simpledialog.askstring("New Player", "Enter your player's name:")
+    p=player(name)
+    player_file=f'chr/{name}'
     play_game()
 
+def exip():
+    global p
+    global player_file
+    file_path = filedialog.askopenfilename(initialdir="./DTA/chr", title="Select Player File", filetypes=(("Player Data Files", "*.chrdta"), ("All Files", "*.*")))
+    while file_path and not file_path.lower().endswith('.chrdta'):
+        messagebox.showerror("Invalid File", "Please select a valid .chrdta file.")
+        file_path = filedialog.askopenfilename(initialdir="./DTA/chr", title="Select Player File", filetypes=(("Player Data Files", "*.chrdta"), ("All Files", "*.*")))
+    if not file_path:
+        return
+    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    g.load_player(f'chr/{file_name}')
+    p=g.player
+    player_file=f'chr/{file_name}'
+    play_game()
 
 def game_home():
     global screen
