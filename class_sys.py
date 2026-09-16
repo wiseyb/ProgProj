@@ -45,11 +45,10 @@ Spell: {s.spell}
 
 
 class player(char):
-    def __init__(s,name,health=1000,atta=1000,spell=1000):
+    def __init__(s,name,health=1000,atta=50,spell=100):
         super().__init__()
         s.name=name
         s.type='Player'
-        s.health=health
         s.health=health
         s.attackv=atta
         s.spell=spell
@@ -93,16 +92,21 @@ class game_sys():
         with open(f'./DTA/{file}.chrdta','r') as f:
             data=f.read().split()
 
-        s.player=player(data[0], int(data[1]), int(data[2]), int(data[3]))
+        s.player=player(data[0].replace('_',' '), int(data[1]), int(data[2]), int(data[3]))
         return s.player
 
     def save_player(s,file):
+        file=file.replace(' ','_')
         with open(f'./DTA/{file}.chrdta','w') as f:
-            f.write(f'{s.player.name} {s.player.health} {s.player.attackv} {s.player.spell}\n')
+            f.write(f'{s.player.name.replace(" ","_")} {s.player.health} {s.player.attackv} {s.player.spell}\n')
 
     def prep(s):
+        s.map = []
+        s.level = []
+        s.chars = {}
         tmg=[]
         for i in range(len(s.gdta)):
+            s.gdta[i]=s.gdta[i].strip()
             if s.gdta[i]=='__map__':
                 pass
             elif s.gdta[i-1] == '__map__' and s.gdta[i] != None:
@@ -119,10 +123,12 @@ class game_sys():
                 s.char_init=False
                 s.level_p=True
             elif s.char_init:
-                s.att=s.gdta[i].split(' ')
+                if s.gdta[i]=='':
+                    continue
+                s.att=s.gdta[i].split()
                 s.chars[f'{s.att[0].lower()}']=enemy(s.att[0],int(s.att[1]),int(s.att[2]),int(s.att[3]))
             elif s.level_p:
-                s.levelatt=s.gdta[i].split(' ')
+                s.levelatt=s.gdta[i].split()
                 for j in range(int(s.levelatt[0])):
                     s.level.append(s.levelatt[1])
         s.prepped=True
