@@ -1,0 +1,18 @@
+__map__
+1,1,1,1,1,1,1 1,0,0,0,0,0,1 1,0,0,0,0,0,1 1,0,0,0,0,0,1 1,0,0,0,0,0,1 1,0,0,0,0,0,1 1,1,1,1,1,1,1
+__enemy__
+Drakuseth 2500 50 75
+Hellkite 1250 25 37
+Dragon 750 20 30
+Mage 600 11 40
+Whelp 500 15 25
+Hatchling 400 12 20
+Dragonrider 300 10 17
+Egg 200 7 15
+Shaman 100 5 10
+Goblin 50 5 10
+__level__
+5 Goblin
+3 Shaman
+1 Egg
+1 Goblin
