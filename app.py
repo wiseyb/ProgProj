@@ -13,7 +13,7 @@ import filecmp
 
 PROTECTED_PATHS = {".git", ".github", "__pycache__", ".venv"}
 
-DEV_MODE = True  # Set True to prevent git syncing
+DEV_MODE = False  # Set True to prevent git syncing
 
 def is_protected_path(path):
     normalized = os.path.normcase(os.path.normpath(path))
@@ -39,6 +39,18 @@ def get_bg_color(img, step=10):
 
     most_common = Counter(pixels).most_common(1)[0][0]
     return rgb_to_hex(most_common)
+def get_fg_color(img, step=10):
+    pixels = []
+
+    width = img.width()
+    height = img.height()
+
+    for x in range(0, width, step):
+        for y in range(0, height, step):
+            pixels.append(img.get(x, y))  # returns (r, g, b)
+
+    least_common = Counter(pixels).most_common()[-1][0]
+    return rgb_to_hex(least_common)
 
 
 
@@ -197,15 +209,14 @@ def ls(a,f): # Linear search algorithm
     else:
         return 0
     
-bab='#990000'
+bab='#ff0000'
 
 baf='#000'
 
-ho='#350000'
+ho='#550000'
 
 bbg=get_bg_color(bgr)
-
-bfg='#ff0000'
+bfg=get_fg_color(bgr)
 
 hoverc='#'
 for c in range(len(bbg)):
@@ -213,6 +224,8 @@ for c in range(len(bbg)):
         pass
     else:
         nvi=ls(hexv,bbg[c])+int(ho[c])
+        if nvi > 15:
+            nvi = 15
         nv=hexv[nvi]
         hoverc+=nv
 
@@ -390,6 +403,8 @@ def player_select():
 def start_encounter():
     global screen
     screen = 4
+    root.bind("<KeyPress-e>", lambda e: trigger_button_press(b3))
+    root.bind("<KeyRelease-e>", lambda e: trigger_button_release(b3))
     t1.configure(text=f'{p.name} vs {g.current_enemy.name}')
     t2.configure(text=f'{g.current_enemy.name}: {g.current_enemy.health} health | {p.name}: {p.health}')
     b1.configure(text='''Home
@@ -455,7 +470,6 @@ def Sattack():
     combat_action(2)
 
 def play_game():
-    print('Game Start')
     g.begin(p)
     start_encounter()
     
@@ -464,7 +478,7 @@ def play_game():
 def default_camp():
     global camp_type
     camp_type='Default Campaign'
-    g.load('camp/game')
+    g.load('camp/DEFAULT/game')
     g.prep()
     player_select()
 
@@ -475,6 +489,12 @@ def custom_camp():
     file_path = filedialog.askopenfilename(initialdir="./DTA/camp", title="Select Campaign File", filetypes=(("Game Data Files", "*.gmdta"), ("All Files", "*.*")))
     while file_path and not file_path.lower().endswith('.gmdta'):
         messagebox.showerror("Invalid File", "Please select a valid .gmdta file.")
+        file_path = filedialog.askopenfilename(initialdir="./DTA/camp", title="Select Campaign File", filetypes=(("Game Data Files", "*.gmdta"), ("All Files", "*.*")))
+    while file_path and file_path.find('TMPLT')>0:
+        messagebox.showerror("Invalid File Location", "Please select a file from the /camp location only.")
+        file_path = filedialog.askopenfilename(initialdir="./DTA/camp", title="Select Campaign File", filetypes=(("Game Data Files", "*.gmdta"), ("All Files", "*.*")))
+    while file_path and file_path.find('DEFAULT')>0:
+        messagebox.showerror("Invalid File Location", "Please select a file from the /camp location only.")
         file_path = filedialog.askopenfilename(initialdir="./DTA/camp", title="Select Campaign File", filetypes=(("Game Data Files", "*.gmdta"), ("All Files", "*.*")))
     if not file_path:
         return
@@ -497,6 +517,9 @@ def exip():
     file_path = filedialog.askopenfilename(initialdir="./DTA/chr", title="Select Player File", filetypes=(("Player Data Files", "*.chrdta"), ("All Files", "*.*")))
     while file_path and not file_path.lower().endswith('.chrdta'):
         messagebox.showerror("Invalid File", "Please select a valid .chrdta file.")
+        file_path = filedialog.askopenfilename(initialdir="./DTA/chr", title="Select Player File", filetypes=(("Player Data Files", "*.chrdta"), ("All Files", "*.*")))
+    while file_path and file_path.find('TMPLT')>0:
+        messagebox.showerror("Invalid File Location", "Please select a file from the /chr location only.")
         file_path = filedialog.askopenfilename(initialdir="./DTA/chr", title="Select Player File", filetypes=(("Player Data Files", "*.chrdta"), ("All Files", "*.*")))
     if not file_path:
         return
