@@ -1,3 +1,5 @@
+from random import randint as ri
+
 class master():
     def __init__(s):
         s.strmode='n'
@@ -45,7 +47,7 @@ Spell: {s.spell}
 
 
 class player(char):
-    def __init__(s,name,health=1000,atta=50,spell=100):
+    def __init__(s,name,health=1200,atta=ri(75,100),spell=ri(25,175)):
         super().__init__()
         s.name=name
         s.type='Player'
@@ -100,6 +102,11 @@ class game_sys():
         with open(f'./DTA/{file}.chrdta','w') as f:
             f.write(f'{s.player.name.replace(" ","_")} {s.player.health} {s.player.attackv} {s.player.spell}\n')
 
+    def remove_player(s,file):
+        import os
+        if os.path.exists(f'./DTA/{file}.chrdta'):
+            os.remove(f'./DTA/{file}.chrdta')
+
     def prep(s):
         s.map = []
         s.level = []
@@ -126,7 +133,7 @@ class game_sys():
                 if s.gdta[i]=='':
                     continue
                 s.att=s.gdta[i].split()
-                s.chars[f'{s.att[0].lower()}']=enemy(s.att[0],int(s.att[1]),int(s.att[2]),int(s.att[3]))
+                s.chars[f'{s.att[0].lower()}']=enemy(s.att[0].replace('_',' '),int(s.att[1]),int(s.att[2]),int(s.att[3]))
             elif s.level_p:
                 s.levelatt=s.gdta[i].split()
                 for j in range(int(s.levelatt[0])):
@@ -137,11 +144,11 @@ class game_sys():
         pl.str_mode('g')
         en.str_mode('g')
         if pa==1:
-            pl.attack(en,pl.attackv)
+            pl.attack(en,ri(int(pl.attackv-(pl.attackv/2)),int(pl.attackv+(pl.attackv/2))))
         elif pa==2:
-            pl.attack(en,pl.spell)
+            pl.attack(en,ri(int(pl.spell-(pl.spell/2)),int(pl.spell+(pl.spell/2))))
         if en.health > 0:
-            en.attack(pl,en.attackv)
+            en.attack(pl,ri(int(en.attackv-(en.attackv/4)),int(en.attackv+(en.attackv/4))))
 
     def begin(s,player):
         s.player=player
