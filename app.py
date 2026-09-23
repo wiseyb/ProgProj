@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import font as tkFont
 from tkinter import filedialog,messagebox,simpledialog
 from collections import Counter
+from random import randint as ri
 import sys
 import os
 import shutil
@@ -56,9 +57,15 @@ def get_fg_color(img, step=10):
 
 class RequirementsError(Exception):
     '''Missing required contents'''
-
-
-bgimagepath='./ATT/LOGO-NEW.png'
+rc=ri(0,2)
+if rc==0:
+    bgcol='R'
+elif rc==1:
+    bgcol='B'
+else:
+    bgcol='G'
+bgimagename=f'LOGO-NEW-{bgcol}.png'
+bgimagepath=f'./ATT/{bgimagename}'
 
 syncerror=False
 missingReq=False
@@ -123,7 +130,7 @@ def sync(local, repo, delete_ext=False):
 script_dir = os.path.abspath(os.path.dirname(__file__))
 os.chdir(script_dir)
 local_dir = script_dir
-bgimagepath = os.path.join(script_dir, 'ATT', 'LOGO-NEW.png')
+bgimagepath = os.path.join(script_dir, 'ATT', bgimagename)
 required = [bgimagepath]
 gzip = ("https://github.com/wiseyb/ProgProj/archive/refs/heads/main.zip")
 if not DEV_MODE:
@@ -197,6 +204,7 @@ screen=0
 #determine hover colours for buttons
 
 hexv=['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
+hchexv=['2','3','4','5','6','7','8','9','a','b','c','d','e','f']
 
 def ls(a,f): # Linear search algorithm
     found=False
@@ -209,11 +217,29 @@ def ls(a,f): # Linear search algorithm
     else:
         return 0
     
-bab='#ff0000'
+bab=get_fg_color(bgr)
 
 baf='#000'
 
-ho='#550000'
+#ho='#550000'
+ho='#'
+for ca in range(len(bab)):
+    if bab[ca]=='#':
+        pass
+    else:
+        hnvi=ls(hchexv,bab[ca])-10
+        if hnvi == -10:
+            hnv='0'
+        elif hnvi < 0:
+            hnvi=0
+            hnv=hchexv[hnvi]
+        elif hnvi > 13:
+            hnvi=13
+            hnv=hchexv[hnvi]
+        else:
+            hnv=hchexv[hnvi]
+        ho+=hnv
+        
 
 bbg=get_bg_color(bgr)
 bfg=get_fg_color(bgr)
@@ -352,11 +378,11 @@ def home():
     t1.configure(text=name)
     t2.configure(text='Shape your own reality')
     b1.configure(text = '''Close
-[Q]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command = close,font=('BankGothic Lt BT', 12))
+[Q]''',activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command = close,font=('BankGothic Lt BT', 12))
     b2.configure(text = '''Play Game
-[SPACE]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=game_home,font=('BankGothic Lt BT', 12))
+[SPACE]''',activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=game_home,font=('BankGothic Lt BT', 12))
     b3.configure(text = '''Campaign Editor
-[E]''',activebackground=bab,activeforeground=baf,bd=0,bg=bbg,fg=bfg,height=2,width=bwid,command=camp,font=('BankGothic Lt BT', 12))
+[E]''',activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=camp,font=('BankGothic Lt BT', 12))
     bp.place(relx=0.5, rely=0.5, anchor='center')
     t1.place(relx=0.5, rely=0.5, anchor='center')
     t2.place(relx=0.5, rely=0.6, anchor='center')
@@ -439,6 +465,7 @@ def encounter_result(result):
     [SPACE]''', width=bwid+5, command=game_home)
         t1.configure(text='Encounter Defeat')
         t2.configure(text=f'{p.name} was defeated by {g.current_enemy.name}')
+        g.remove_player(player_file)
     root.bind("<KeyPress-space>", lambda e: trigger_button_press(b2))
     root.bind("<KeyRelease-space>", lambda e: trigger_button_release(b2))
     root.bind("<KeyPress-e>", lambda e: passf())
@@ -604,13 +631,13 @@ cewf=Frame(root,bg=bbg)
 #Define Elements and set initial appearance
 
 b1 = Button(bf, text = '''Close
-[Q]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command = close,font=('BankGothic Lt BT', 12))
+[Q]''',activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command = close,font=('BankGothic Lt BT', 12))
 
 b2= Button(bf, text = '''Play Game
-[SPACE]''',bd=0,activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=game_home,font=('BankGothic Lt BT', 12))
+[SPACE]''',activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=game_home,font=('BankGothic Lt BT', 12))
 
 b3= Button(bf, text = '''Campaign Editor
-[E]''',activebackground=bab,activeforeground=baf,bd=0,bg=bbg,fg=bfg,height=2,width=bwid,command=camp,font=('BankGothic Lt BT', 12))
+[E]''',activebackground=bab,activeforeground=baf,bg=bbg,fg=bfg,height=2,width=bwid,command=camp,font=('BankGothic Lt BT', 12))
 
 inter=Frame(cewf,bg=bbg)
 inter.pack(side='left', padx=100)
@@ -694,7 +721,13 @@ root.bind("<KeyRelease-e>", lambda e: trigger_button_release(b3))
 # Escape (esc key)
 root.bind('<Escape>', lambda e: esc())
 
-
+#Toggle Fullscreen
+def toggle_fullscreen(event=None):
+    current = root.attributes("-fullscreen")
+    root.attributes("-fullscreen", not current)
+    
+root.bind("<F11>", toggle_fullscreen)
+root.bind("<Control-Alt-Return>", toggle_fullscreen)
 #Hover Bindings
 
 b1.bind("<Enter>", hover)
@@ -711,7 +744,8 @@ enAdd.bind("<Enter>", hover)
 enAdd.bind("<Leave>", un_hover)
 b8.bind("<Enter>", hover)
 b8.bind("<Leave>", un_hover)
-#Render Window
 
+#Render Window
+root.attributes("-fullscreen", True)
 root.mainloop()
 
