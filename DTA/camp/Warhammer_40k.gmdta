@@ -1,0 +1,15 @@
+__map__
+1,1,1,1,1,1,1 1,0,0,0,0,0,1 1,0,0,0,0,0,1 1,0,0,0,0,0,1 1,0,0,0,0,0,1 1,0,0,0,0,0,1 1,1,1,1,1,1,1
+__enemy__
+Ork_Kommando 95 60 7
+Tyranid 85 30 3
+Necron 120 25 2
+Plague_Marine 120 30 2
+Chaos_Prince 200 40 1
+
+__level__
+5 Ork_Kommando
+10 Tyranid
+4 Necron
+3 Plague_Marine
+1 Chaos_Prince
