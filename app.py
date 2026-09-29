@@ -57,15 +57,196 @@ def get_fg_color(img, step=10):
 
 class RequirementsError(Exception):
     '''Missing required contents'''
-rc=ri(0,2)
-if rc==0:
-    bgcol='R'
-elif rc==1:
-    bgcol='B'
-else:
-    bgcol='G'
-bgimagename=f'LOGO-NEW-{bgcol}.png'
-bgimagepath=f'./ATT/{bgimagename}'
+
+def set_colour(col, event=None):
+    global bgimagepath
+    global bgimagename
+    global bgr
+    global bbg
+    global bfg
+    global bab
+    global hoverc
+    global ho
+
+    # Load selected logo
+    bgimagename = f"LOGO-NEW-{col}.png"
+    bgimagepath = os.path.join(script_dir, "ATT", bgimagename)
+
+    bgr = PhotoImage(file=bgimagepath)
+
+    # Update displayed image
+    bp.configure(image=bgr)
+    bp.image = bgr
+
+    # Recalculate colours
+    bbg = get_bg_color(bgr)
+    bfg = get_fg_color(bgr)
+    bab = bfg
+
+    # Rebuild hover colour modifier
+    ho = '#'
+    for ca in range(len(bab)):
+        if bab[ca] == '#':
+            continue
+
+        hnvi = ls(hchexv, bab[ca]) - 10
+
+        if hnvi < 0:
+            hnvi = 0
+        elif hnvi > 13:
+            hnvi = 13
+
+        ho += hchexv[hnvi]
+
+    # Rebuild hover colour
+    hoverc = '#'
+    for c in range(len(bbg)):
+        if bbg[c] == '#':
+            continue
+
+        try:
+            nvi = ls(hexv, bbg[c]) + int(ho[c], 16)
+        except:
+            nvi = ls(hexv, bbg[c])
+
+        if nvi > 15:
+            nvi = 15
+
+        hoverc += hexv[nvi]
+
+    # Root and frames
+    root.configure(bg=bbg)
+    bf.configure(bg=bbg)
+    cewf.configure(bg=bbg)
+    inter.configure(bg=bbg)
+    textf.configure(bg=bbg)
+
+    # Labels
+    for w in [
+        t1, t2, fileText,
+        enNamLab, enHelLab,
+        enAttLab, enSpeLab,
+        cBoxLab, cQuantLab
+    ]:
+        w.configure(
+            bg=bbg,
+            fg=bfg
+        )
+
+    # Entries
+    for w in [
+        enNam, enHel, enAtt,
+        enSpe, cBox, cQuant,
+        filep
+    ]:
+        w.configure(
+            bg=bbg,
+            fg=bfg,
+            insertbackground=bfg
+        )
+
+    # Buttons
+    for w in [
+        b1, b2, b3, b8,
+        enAdd, caAdd, Commit
+    ]:
+        w.configure(
+            bg=bbg,
+            fg=bfg,
+            activebackground=bab,
+            activeforeground=baf
+        )
+
+    # Optional resize if images differ in size
+    w = bgr.width() + 400
+    h = bgr.height() + 50
+
+    ws = root.winfo_screenwidth()
+    hs = root.winfo_screenheight()
+
+    x = int((ws / 2) - (w / 2))
+    y = int((hs / 2) - (h / 2))
+
+    root.geometry(f"{w}x{h}+{x}+{y}")
+
+    root.update_idletasks()
+
+def random_col_path():
+    rc=ri(0,3)
+    if rc==0:
+        bgcol='R'
+    elif rc==1:
+        bgcol='B'
+    elif rc==2:
+        bgcol='G'
+    else:
+        bgcol='C'
+    fbgimagename=f'LOGO-NEW-{bgcol}.png'
+    return f'./ATT/{fbgimagename}',fbgimagename
+
+def rand_col(event=None):
+    global bgimagepath, bgimagename
+    global bgr, bbg, bfg, bab, hoverc, ho
+
+    # Pick a random logo
+    bgimagepath, bgimagename = random_col_path()
+    bgimagepath = os.path.join(script_dir, 'ATT', bgimagename)
+
+    # Reload image
+    bgr = PhotoImage(file=bgimagepath)
+    bp.configure(image=bgr)
+    bp.image = bgr
+
+    # Recalculate colours
+    bbg = get_bg_color(bgr)
+    bfg = get_fg_color(bgr)
+    bab = bfg
+
+    # Recalculate hover colour
+    ho = '#'
+    for ca in range(len(bab)):
+        if bab[ca] != '#':
+            hnvi = ls(hchexv, bab[ca]) - 10
+
+            if hnvi < 0:
+                hnvi = 0
+            elif hnvi > 13:
+                hnvi = 13
+
+            ho += hchexv[hnvi]
+
+    hoverc = '#'
+    for c in range(len(bbg)):
+        if bbg[c] != '#':
+            nvi = ls(hexv, bbg[c]) + int(ho[c], 16)
+
+            if nvi > 15:
+                nvi = 15
+
+            hoverc += hexv[nvi]
+
+    # Update colours
+    root.configure(bg=bbg)
+    bf.configure(bg=bbg)
+    cewf.configure(bg=bbg)
+
+    widgets = [
+        t1, t2, fileText,
+        enNamLab, enHelLab, enAttLab, enSpeLab,
+        cBoxLab, cQuantLab,
+        b1, b2, b3, b8, enAdd, caAdd, Commit
+    ]
+
+    for w in widgets:
+        try:
+            w.configure(bg=bbg, fg=bfg)
+        except:
+            pass
+
+    root.update_idletasks()
+    
+
+bgimagepath,bgimagename=random_col_path()
 
 syncerror=False
 missingReq=False
@@ -721,6 +902,13 @@ root.bind("<KeyRelease-e>", lambda e: trigger_button_release(b3))
 # Escape (esc key)
 root.bind('<Escape>', lambda e: esc())
 
+#Change Colour
+root.bind('<Control-Shift-Return>',rand_col)
+root.bind("<Control-Shift-R>", lambda e: set_colour("R"))
+root.bind("<Control-Shift-G>", lambda e: set_colour("G"))
+root.bind("<Control-Shift-B>", lambda e: set_colour("B"))
+root.bind("<Control-Shift-C>", lambda e: set_colour("C"))
+
 #Toggle Fullscreen
 def toggle_fullscreen(event=None):
     current = root.attributes("-fullscreen")
@@ -748,4 +936,3 @@ b8.bind("<Leave>", un_hover)
 #Render Window
 root.attributes("-fullscreen", True)
 root.mainloop()
-
