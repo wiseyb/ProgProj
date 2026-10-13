@@ -2,13 +2,9 @@ from tkinter import *
 from tkinter import font as tkFont, filedialog, messagebox, simpledialog
 from collections import Counter
 from random import randint as ri
-import os, shutil, ssl, urllib.request, zipfile, tempfile, filecmp, winsound, ctypes, winreg, hashlib
+import os, shutil, filecmp, winsound, ctypes, winreg, hashlib
 
 # Project settings and configuration
-PROTECTED_PATHS = {".git", ".github", "__pycache__", ".venv"}
-
-DEV_MODE = False  # Set True to prevent git syncing
-
 with open('./DTA/conf/config.conf','r') as f:
     confFile=f.read().split('\n')
 conf={}
@@ -16,13 +12,7 @@ for line in confFile:
     data=line.split(' ')
     conf[data[0].strip(':')]=float(data[1])
 
-# General helpers for protected paths, images, and theme colors
-def is_protected_path(path):
-    normalized = os.path.normcase(os.path.normpath(path))
-    parts = [part for part in normalized.split(os.sep) if part and part not in {".", ".."}]
-    return any(part in PROTECTED_PATHS for part in parts)
-
-
+# General helpers for images and theme colors
 def passf():
     pass
 
@@ -44,11 +34,6 @@ def get_bg_color(img, step=10):
 
 def get_fg_color(img, step=10):
     return get_image_color(img, step, least_common=True)
-
-
-
-class RequirementsError(Exception):
-    '''Missing required contents'''
 
 # Keep widget colors synchronized when the background theme changes
 def update_theme():
@@ -99,127 +84,12 @@ def rand_col(event=None):
     _, bgimagename = random_col_path()
     apply_background(os.path.join(script_dir, "ATT", bgimagename))
 
-# Select initial artwork before checking required project assets
-bgimagepath,bgimagename=random_col_path()
-
-syncerror=False
-missingReq=False
-
-required=[bgimagepath]
-
-# Download, extract, and synchronize project files when development mode is off
-def drz(rurl,dzip):
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
-    with urllib.request.urlopen(rurl, context=ctx) as response:
-        with open(dzip, "wb") as f:
-            f.write(response.read())
-
-def extract(zpath,to):
-    with zipfile.ZipFile(zpath,'r') as z:
-        z.extractall(to)
-
-def sync(local, repo, delete_ext=False):
-    local = os.path.abspath(local)
-    repo = os.path.abspath(repo)
-
-    for root, dirs, files in os.walk(repo):
-        dirs[:] = [d for d in dirs if not is_protected_path(os.path.join(root, d))]
-        rel = os.path.relpath(root, repo)
-        local_eqv = os.path.join(local, rel)
-        os.makedirs(local_eqv, exist_ok=True)
-
-        for f in files:
-            repof = os.path.join(root, f)
-            if is_protected_path(repof):
-                continue
-            localf = os.path.join(local_eqv, f)
-            if not os.path.exists(localf) or not filecmp.cmp(repof, localf, shallow=False):
-                shutil.copy2(repof, localf)
-                print("Updated:", os.path.relpath(localf, local))
-
-        if delete_ext:
-            for current_root, current_dirs, current_files in os.walk(local, topdown=False):
-                current_dirs[:] = [d for d in current_dirs if not is_protected_path(os.path.join(current_root, d))]
-                rel = os.path.relpath(current_root, local)
-                repo_eqv = os.path.join(repo, rel)
-                if is_protected_path(current_root):
-                    continue
-                if not os.path.exists(repo_eqv):
-                    if os.path.isdir(current_root) and not os.path.islink(current_root):
-                        shutil.rmtree(current_root)
-                    else:
-                        os.remove(current_root)
-                    continue
-                repofs = set(os.listdir(repo_eqv))
-                localfs = set(os.listdir(current_root))
-                for i in localfs - repofs:
-                    p = os.path.join(current_root, i)
-                    if is_protected_path(p):
-                        continue
-                    if os.path.isdir(p):
-                        shutil.rmtree(p)
-                    else:
-                        os.remove(p)
-                    print("Deleted:", os.path.relpath(p, local))
-
-script_dir = os.path.abspath(os.path.dirname(__file__))    
+# Use the app's folder as the base for its assets and data files
+script_dir = os.path.abspath(os.path.dirname(__file__))
 os.chdir(script_dir)
-local_dir = script_dir
+_, bgimagename = random_col_path()
 bgimagepath = os.path.join(script_dir, 'ATT', bgimagename)
-required = [bgimagepath]
-gzip = ("https://github.com/wiseyb/ProgProj/archive/refs/heads/main.zip")
-# Optionally refresh project files, then stop if required artwork is unavailable
-if not DEV_MODE:
-    try:
-        with tempfile.TemporaryDirectory() as tmp:
-            zpath = os.path.join(tmp, 'repo.zip')
-            print("Downloading GitHub repo…")
-            drz(gzip, zpath)
-            print("Extracting…")
-            extract(zpath, tmp)
 
-            repo_candidates = [
-                os.path.join(tmp, d)
-                for d in os.listdir(tmp)
-                if os.path.isdir(os.path.join(tmp, d))
-            ]
-            repo_root = next((p for p in repo_candidates if os.path.isdir(os.path.join(p, '.git'))), repo_candidates[0] if repo_candidates else None)
-            if repo_root is None:
-                raise FileNotFoundError("Downloaded repo contents were not found")
-
-            print("Syncing...")
-            sync(local_dir, repo_root, delete_ext=True)
-    except Exception as e:
-        syncerror = True
-        if "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Basic Constraints of CA cert not marked critical (_ssl.c:" in str(e):
-            exp = 'SSL certificate verification failed'
-        else:
-            exp = e
-        print(f'''Error syncing project:  {exp}''')
-else:
-    print("DEV MODE enabled. Skipping Git sync.")
-for el in required:
-    if not os.path.exists(el):
-        missingReq=True
-        break
-
-
-if syncerror and missingReq:
-    raise RequirementsError("Program is missing required data and cannot sync with remote storage")
-
-if syncerror:
-    for p in required:
-        if not os.path.exists(p):
-            fpath=os.path.abspath(p)
-            print(f'''Required data is not present.
-Path: {fpath}
-Quitting...''')
-            import os
-            os._exit(0)
-        
 # Create the main window and prepare the bundled font for Tk
 
 name='POLYMORPHISM'
