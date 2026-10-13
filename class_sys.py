@@ -47,13 +47,23 @@ Spell: {s.spell}
 
 
 class player(char):
-    def __init__(s,name,health=1200,atta=ri(75,100),spell=ri(25,175)):
+    def __init__(s, name, conf=None, health=None, attackv=None, spell=None):
         super().__init__()
-        s.name=name
-        s.type='Player'
-        s.health=health
-        s.attackv=atta
-        s.spell=spell
+        s.name = name
+        s.type = 'Player'
+        if health is not None:
+            s.health = health
+            s.attackv = attackv
+            s.spell = spell
+        else:
+            plstatmin = conf['plstatmin']
+            plstatmax = int((4/3) * plstatmin)
+            s.health = int(16*plstatmin)
+            s.attackv = ri(int(plstatmin),int(plstatmax))
+            s.spell = ri(
+                int(plstatmin - ((2/3) * plstatmin)),
+                int(plstatmax + ((2/3) * plstatmax))
+            )
 
 
 
@@ -69,7 +79,7 @@ class enemy(char):
 #Class system for game operation
 
 class game_sys():
-    def __init__(s):
+    def __init__(s,conf):
         s.gdta=[]
         s.map=[]
         s.level=[]
@@ -80,6 +90,7 @@ class game_sys():
         s.level_p=False
         s.char_init=False
         s.prepped=True
+        s.conf=conf
 
     def load(s,file):
         s.prepped=False
@@ -144,11 +155,11 @@ class game_sys():
         pl.str_mode('g')
         en.str_mode('g')
         if pa==1:
-            pl.attack(en,ri(int(pl.attackv-(pl.attackv/2)),int(pl.attackv+(pl.attackv/2))))
+            pl.attack(en,ri(int(pl.attackv-(pl.attackv*s.conf['randomiser'])),int(pl.attackv+(pl.attackv*s.conf['randomiser']))))
         elif pa==2:
-            pl.attack(en,ri(int(pl.spell-(pl.spell/2)),int(pl.spell+(pl.spell/2))))
+            pl.attack(en,ri(int(pl.spell-(pl.spell*s.conf['randomiser'])),int(pl.spell+(pl.spell*s.conf['randomiser']))))
         if en.health > 0:
-            en.attack(pl,ri(int(en.attackv-(en.attackv/4)),int(en.attackv+(en.attackv/4))))
+            en.attack(pl,ri(int(en.attackv-(en.attackv*(s.conf['randomiser']/2))),int(en.attackv+(en.attackv*(s.conf['randomiser']/2)))))
 
     def begin(s,player):
         s.player=player
