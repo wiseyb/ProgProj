@@ -14,7 +14,14 @@ import filecmp
 
 PROTECTED_PATHS = {".git", ".github", "__pycache__", ".venv"}
 
-DEV_MODE = False  # Set True to prevent git syncing
+DEV_MODE = True  # Set True to prevent git syncing
+
+with open('./DTA/conf/config.conf','r') as f:
+    confFile=f.read().split('\n')
+conf={}
+for line in confFile:
+    data=line.split(' ')
+    conf[data[0].strip(':')]=float(data[1])
 
 def is_protected_path(path):
     normalized = os.path.normcase(os.path.normpath(path))
@@ -87,32 +94,32 @@ def set_colour(col, event=None):
     ho = '#'
     for ca in range(len(bab)):
         if bab[ca] == '#':
-            continue
-
-        hnvi = ls(hchexv, bab[ca]) - 10
-
-        if hnvi < 0:
-            hnvi = 0
-        elif hnvi > 13:
-            hnvi = 13
-
-        ho += hchexv[hnvi]
+            pass
+        else:
+            hnvi=ls(hchexv,bab[ca])-10
+            if hnvi == -10:
+                hnv='0'
+            elif hnvi < 0:
+                hnvi=0
+                hnv=hchexv[hnvi]
+            elif hnvi > len(hchexv)-1:
+                hnvi=len(hchexv)-1
+                hnv=hchexv[hnvi]
+            else:
+                hnv=hchexv[hnvi]
+            ho+=hnv
 
     # Rebuild hover colour
-    hoverc = '#'
+    hoverc='#'
     for c in range(len(bbg)):
-        if bbg[c] == '#':
-            continue
-
-        try:
-            nvi = ls(hexv, bbg[c]) + int(ho[c], 16)
-        except:
-            nvi = ls(hexv, bbg[c])
-
-        if nvi > 15:
-            nvi = 15
-
-        hoverc += hexv[nvi]
+        if bbg[c]=='#':
+            pass
+        else:
+            nvi=ls(hexv,bbg[c])+int(ho[c])
+            if nvi > 15:
+                nvi = 15
+            nv=hexv[nvi]
+            hoverc+=nv
 
     # Root and frames
     root.configure(bg=bbg)
@@ -172,13 +179,15 @@ def set_colour(col, event=None):
     root.update_idletasks()
 
 def random_col_path():
-    rc=ri(0,3)
+    rc=ri(0,4)
     if rc==0:
         bgcol='R'
     elif rc==1:
         bgcol='B'
     elif rc==2:
         bgcol='G'
+    elif rc==3:
+        bgcol='M'
     else:
         bgcol='C'
     fbgimagename=f'LOGO-NEW-{bgcol}.png'
@@ -203,27 +212,35 @@ def rand_col(event=None):
     bab = bfg
 
     # Recalculate hover colour
+    print("bab =", repr(bab), len(bab))
     ho = '#'
     for ca in range(len(bab)):
-        if bab[ca] != '#':
-            hnvi = ls(hchexv, bab[ca]) - 10
+        if bab[ca] == '#':
+            pass
+        else:
+            hnvi=ls(hchexv,bab[ca])-10
+            if hnvi == -10:
+                hnv='0'
+            elif hnvi < 0:
+                hnvi=0
+                hnv=hchexv[hnvi]
+            elif hnvi > len(hchexv)-1:
+                hnvi=len(hchexv)-1
+                hnv=hchexv[hnvi]
+            else:
+                hnv=hchexv[hnvi]
+            ho+=hnv
 
-            if hnvi < 0:
-                hnvi = 0
-            elif hnvi > 13:
-                hnvi = 13
-
-            ho += hchexv[hnvi]
-
-    hoverc = '#'
+    hoverc='#'    
     for c in range(len(bbg)):
-        if bbg[c] != '#':
-            nvi = ls(hexv, bbg[c]) + int(ho[c], 16)
-
+        if bbg[c]=='#':
+            pass
+        else:
+            nvi=ls(hexv,bbg[c])+int(ho[c])
             if nvi > 15:
                 nvi = 15
-
-            hoverc += hexv[nvi]
+            nv=hexv[nvi]
+            hoverc+=nv
 
     # Update colours
     root.configure(bg=bbg)
@@ -244,7 +261,6 @@ def rand_col(event=None):
             pass
 
     root.update_idletasks()
-    
 
 bgimagepath,bgimagename=random_col_path()
 
@@ -257,7 +273,13 @@ required=[bgimagepath]
 
 # Setup and creation of missing files
 def drz(rurl,dzip):
-    urllib.request.urlretrieve(rurl,dzip)
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    with urllib.request.urlopen(rurl, context=ctx) as response:
+        with open(dzip, "wb") as f:
+            f.write(response.read())
 
 def extract(zpath,to):
     with zipfile.ZipFile(zpath,'r') as z:
@@ -307,8 +329,7 @@ def sync(local, repo, delete_ext=False):
                         os.remove(p)
                     print("Deleted:", os.path.relpath(p, local))
 
-
-script_dir = os.path.abspath(os.path.dirname(__file__))
+script_dir = os.path.abspath(os.path.dirname(__file__))    
 os.chdir(script_dir)
 local_dir = script_dir
 bgimagepath = os.path.join(script_dir, 'ATT', bgimagename)
@@ -381,7 +402,6 @@ root.configure(bg=get_bg_color(bgr))
 bp=Label(root,image=bgr,bd=0)
 screen=0
 
-
 #determine hover colours for buttons
 
 hexv=['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
@@ -414,8 +434,8 @@ for ca in range(len(bab)):
         elif hnvi < 0:
             hnvi=0
             hnv=hchexv[hnvi]
-        elif hnvi > 13:
-            hnvi=13
+        elif hnvi > len(hchexv)-1:
+            hnvi=len(hchexv)-1
             hnv=hchexv[hnvi]
         else:
             hnv=hchexv[hnvi]
@@ -435,7 +455,6 @@ for c in range(len(bbg)):
             nvi = 15
         nv=hexv[nvi]
         hoverc+=nv
-
 
 # Functions requrired for buttons and keybinds
 global campDTA
@@ -541,7 +560,7 @@ def un_hover(e):
 
 from class_sys import *
 
-g=game_sys()
+g=game_sys(conf)
 
 #Window configs
 
@@ -715,7 +734,7 @@ def newp():
     global p
     global player_file
     name = simpledialog.askstring("New Player", "Enter your player's name:")
-    p=player(name)
+    p=player(name,conf=conf)
     player_file=f'chr/{name}'
     play_game()
 
@@ -883,6 +902,7 @@ px=(fx,bx)
 #Render Homescreeen
 home()
 
+set_colour("RM")
 
 # Custom Keyboard Shortcuts
 
