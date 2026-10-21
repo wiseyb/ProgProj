@@ -2,8 +2,11 @@ from tkinter import *
 from tkinter import font as tkFont, filedialog, messagebox, simpledialog
 from collections import Counter
 from random import randint as ri
-import os, shutil, filecmp, winsound, ctypes, winreg, hashlib
-
+import os, shutil, filecmp, ctypes, winreg, hashlib
+try:
+    import winsound
+except:
+    pass
 # Project settings and configuration
 with open('./DTA/conf/config.conf','r') as f:
     confFile=f.read().split('\n')
@@ -212,6 +215,7 @@ def install_bundled_font():
 # Load the initial logo and create the app's shared font styles
 fontname = install_bundled_font() or "Candara"
 bgr=PhotoImage(file=bgimagepath)
+ico=PhotoImage(file='./ATT/icon.png')
 w=bgr.width()+400
 h=bgr.height()+50
 ws=root.winfo_screenwidth()
@@ -222,6 +226,8 @@ dim=f'{w}x{h}+{x}+{y}'
 root.geometry(dim)
 root.configure(bg=get_bg_color(bgr))
 bp=Label(root,image=bgr,bd=0)
+root.iconphoto(False, ico)
+root.iconphoto(True, ico)
 screen=0
 
 standard_size=12
@@ -692,7 +698,7 @@ px=(fx,bx)
 
 # Show the initial home screen and apply its default palette
 home()
-set_colour("RM")
+set_colour("D")
 
 # Keyboard shortcuts for navigation, palette selection, and fullscreen
 # Escape (esc key)
@@ -700,15 +706,45 @@ root.bind('<Escape>', lambda e: esc())
 
 #Change Colour
 root.bind('<Control-Shift-Return>',rand_col)
-for color in "RGBC":
+for color in "RGBCMD":
     root.bind(f"<Control-Shift-{color}>", lambda event, color=color: set_colour(color))
 
-def toggle_fullscreen(event=None):
+# Fullscreen indicator border
+border_size = 5
+
+border_top = Frame(root, bd=0, highlightthickness=0)
+border_bottom = Frame(root, bd=0, highlightthickness=0)
+border_left = Frame(root, bd=0, highlightthickness=0)
+border_right = Frame(root, bd=0, highlightthickness=0)
+
+def show_fullscreen_border(event=None):
+    border_top.configure(bg=bfg)
+    border_bottom.configure(bg=bfg)
+    border_left.configure(bg=bfg)
+    border_right.configure(bg=bfg)
+
+    border_top.place(x=0, y=0, relwidth=1, height=border_size)
+    border_bottom.place(relx=0, rely=1, anchor="sw",
+                        relwidth=1, height=border_size)
+    border_left.place(x=0, y=0, width=border_size, relheight=1)
+    border_right.place(relx=1, y=0, anchor="ne",
+                       width=border_size, relheight=1)
+
+
+def hide_fullscreen_border_and_toggle(event=None):
+    for b in (border_top, border_bottom, border_left, border_right):
+        b.place_forget()
+
     current = root.attributes("-fullscreen")
     root.attributes("-fullscreen", not current)
     
-root.bind("<F11>", toggle_fullscreen)
-root.bind("<Control-Alt-Return>", toggle_fullscreen)
+# F11
+root.bind("<KeyPress-F11>", show_fullscreen_border)
+root.bind("<KeyRelease-F11>", hide_fullscreen_border_and_toggle)
+
+# Ctrl+Alt+Enter
+root.bind("<Control-KeyPress-Return>", show_fullscreen_border)
+root.bind("<Control-Alt-KeyRelease-Return>", hide_fullscreen_border_and_toggle)
 
 # Add hover feedback to clickable controls, then start the Tk event loop
 for widget in [b1, b2, b3, Commit, caAdd, enAdd, b8]:
@@ -717,5 +753,8 @@ for widget in [b1, b2, b3, Commit, caAdd, enAdd, b8]:
 
 #Render Window
 root.attributes("-fullscreen", True)
-winsound.PlaySound('./ATT/intro2.wav', winsound.SND_FILENAME)
+try:
+    winsound.PlaySound('./ATT/intro2.wav', winsound.SND_FILENAME)
+except:
+    pass
 root.mainloop()
