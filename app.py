@@ -7,6 +7,11 @@ try:
     import winsound
 except:
     pass
+try:
+    myappid = u'ONO_Studios.Polymorphism.main.v6'
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except:
+    pass
 # Project settings and configuration
 with open('./DTA/conf/config.conf','r') as f:
     confFile=f.read().split('\n')
